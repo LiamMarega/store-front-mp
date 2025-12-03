@@ -6,6 +6,35 @@ import { createErrorResponse, forwardCookies, HTTP_STATUS, ERROR_CODES } from '@
 
 export async function POST(req: NextRequest) {
   try {
+    // Parse request body to determine payment method
+    const body = await req.json().catch(() => ({}));
+    const paymentMethod = body.paymentMethod || 'stripe'; // Default to Stripe
+
+    // Route to MercadoPago endpoint if selected
+    if (paymentMethod === 'mercadopago') {
+      const mercadopagoUrl = new URL('/api/checkout/mercadopago', req.url);
+      const mercadopagoRes = await fetch(mercadopagoUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cookie': req.headers.get('cookie') || '',
+        },
+        body: JSON.stringify({}),
+      });
+
+      const data = await mercadopagoRes.json();
+      const response = NextResponse.json(data, { status: mercadopagoRes.status });
+
+      // Forward cookies from MercadoPago response
+      const setCookieHeader = mercadopagoRes.headers.get('set-cookie');
+      if (setCookieHeader) {
+        response.headers.set('set-cookie', setCookieHeader);
+      }
+
+      return response;
+    }
+
+    // Continue with existing Stripe logic for non-MercadoPago payments
     // 1. Verificar que existe una orden activa
     const orderRes = await fetchGraphQL(
       { query: GET_ACTIVE_ORDER_FOR_PAYMENT },
@@ -76,7 +105,7 @@ export async function POST(req: NextRequest) {
     }
 
     const clientSecret = paymentIntentRes.data?.createStripePaymentIntent;
-    
+
     if (!clientSecret) {
       return createErrorResponse(
         'No client secret',

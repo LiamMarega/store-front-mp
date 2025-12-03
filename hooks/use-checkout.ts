@@ -11,7 +11,8 @@ export const checkoutKeys = {
 
 // Types
 interface PaymentIntentData {
-  clientSecret: string;
+  clientSecret?: string;
+  redirectUrl?: string;
   orderCode: string;
   amount?: number;
   currency?: string;
@@ -88,11 +89,12 @@ async function setShippingMethod(shippingMethodId: string): Promise<any> {
   return data;
 }
 
-async function createPaymentIntent(): Promise<PaymentIntentData> {
+async function createPaymentIntent(paymentMethod: string = 'stripe'): Promise<PaymentIntentData> {
   const response = await fetch('/api/checkout/payment-intent', {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ paymentMethod }),
   });
 
   const data = await response.json();
@@ -102,8 +104,13 @@ async function createPaymentIntent(): Promise<PaymentIntentData> {
     throw new Error(errorMsg);
   }
 
-  if (!data.clientSecret) {
+  // Validate response based on payment method
+  if (paymentMethod === 'stripe' && !data.clientSecret) {
     throw new Error('No client secret received');
+  }
+
+  if (paymentMethod === 'mercadopago' && !data.redirectUrl) {
+    throw new Error('No redirect URL received');
   }
 
   return data;
@@ -126,6 +133,7 @@ export function useCheckoutProcess() {
   const queryClient = useQueryClient();
   const { openAuthModal, isAuthenticated } = useAuth();
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
   const [orderCode, setOrderCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -151,11 +159,11 @@ export function useCheckoutProcess() {
   });
 
   const createPaymentIntentMutation = useMutation({
-    mutationFn: createPaymentIntent,
+    mutationFn: ({ paymentMethod }: { paymentMethod: string }) => createPaymentIntent(paymentMethod),
   });
 
   const processCheckout = useCallback(
-    async (data: CustomerFormData, selectedShippingMethod: string) => {
+    async (data: CustomerFormData, selectedShippingMethod: string, paymentMethod: string = 'stripe') => {
       setError(null);
 
       try {
@@ -195,10 +203,17 @@ export function useCheckoutProcess() {
           await setShippingMethodMutation.mutateAsync(selectedShippingMethod);
         }
 
-        // Create payment intent
-        const paymentIntent = await createPaymentIntentMutation.mutateAsync();
-        setClientSecret(paymentIntent.clientSecret);
-        setOrderCode(paymentIntent.orderCode);
+        // Create payment intent based on selected method
+        const paymentIntent = await createPaymentIntentMutation.mutateAsync({ paymentMethod });
+
+        // Handle different payment methods
+        if (paymentMethod === 'stripe') {
+          setClientSecret(paymentIntent.clientSecret || null);
+          setOrderCode(paymentIntent.orderCode);
+        } else if (paymentMethod === 'mercadopago') {
+          setRedirectUrl(paymentIntent.redirectUrl || null);
+          setOrderCode(paymentIntent.orderCode);
+        }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'An error occurred during checkout';
         setError(errorMessage);
@@ -210,12 +225,14 @@ export function useCheckoutProcess() {
 
   const resetCheckout = useCallback(() => {
     setClientSecret(null);
+    setRedirectUrl(null);
     setOrderCode(null);
     setError(null);
   }, []);
 
   return {
     clientSecret,
+    redirectUrl,
     orderCode,
     isProcessing:
       setCustomerMutation.isPending ||
