@@ -13,6 +13,7 @@ import { AddToCartButton } from '@/components/cart/add-to-cart-button';
 import { ShoppingCart, Heart, Share2, Truck, Shield, RotateCcw, MessageCircle } from 'lucide-react';
 import { fadeInUp } from '@/lib/animations';
 import { toast } from 'sonner';
+import { formatPrice } from '@/lib/checkout/utils';
 
 interface ProductDetailsProps {
   product: Product;
@@ -40,12 +41,7 @@ export function ProductDetails({ product }: ProductDetailsProps) {
     },
   });
 
-  const formatPrice = (price: number, currencyCode: string) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currencyCode,
-    }).format(price / 100);
-  };
+
 
   const mainVariant = product.variants?.find(v => v.id === selectedVariant) || product.variants?.[0];
   const price = mainVariant?.priceWithTax;
@@ -117,7 +113,7 @@ export function ProductDetails({ product }: ProductDetailsProps) {
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-brand-dark-blue mb-4 font-tango-sans leading-tight">
           {product.name}
         </h1>
-        
+
         {price !== null && price !== undefined && price > 0 && (
           <div className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-3 mb-4">
             <span className="text-2xl sm:text-3xl font-bold text-brand-primary">
@@ -150,11 +146,10 @@ export function ProductDetails({ product }: ProductDetailsProps) {
                 role="radio"
                 aria-checked={selectedVariant === variant.id}
                 tabIndex={0}
-                className={`p-4 border-2 rounded-lg cursor-pointer transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-brand-primary ${
-                  selectedVariant === variant.id
-                    ? 'border-brand-primary bg-brand-primary/5'
-                    : 'border-brand-cream hover:border-brand-primary/50'
-                }`}
+                className={`p-4 border-2 rounded-lg cursor-pointer transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-brand-primary ${selectedVariant === variant.id
+                  ? 'border-brand-primary bg-brand-primary/5'
+                  : 'border-brand-cream hover:border-brand-primary/50'
+                  }`}
                 onClick={() => setSelectedVariant(variant.id)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
@@ -226,7 +221,7 @@ export function ProductDetails({ product }: ProductDetailsProps) {
             className="w-full h-12 sm:h-12 text-base sm:text-lg font-semibold touch-manipulation"
           />
         )}
-        
+
         <div className="flex flex-col sm:flex-row gap-3">
           {!hasValidPrice && (
             <Button

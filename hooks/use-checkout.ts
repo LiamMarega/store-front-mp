@@ -163,36 +163,18 @@ export function useCheckoutProcess() {
   });
 
   const processCheckout = useCallback(
-    async (data: CustomerFormData, selectedShippingMethod: string, paymentMethod: string = 'stripe') => {
+    async (data: CustomerFormData, selectedShippingMethod: string) => {
       setError(null);
 
       try {
         // Set customer information only if user is not authenticated
         if (!isAuthenticated) {
-          const setCustomerData = await setCustomerMutation.mutateAsync({
+          await setCustomerMutation.mutateAsync({
             firstName: data.firstName,
             lastName: data.lastName,
             emailAddress: data.emailAddress,
             phoneNumber: data.shippingPhoneNumber,
           });
-
-          // Check for EMAIL_ADDRESS_CONFLICT_ERROR
-          if (
-            setCustomerData?.setCustomerForOrder?.errorCode === 'EMAIL_ADDRESS_CONFLICT_ERROR' ||
-            setCustomerData?.errors?.some(
-              (e: any) =>
-                e.extensions?.code === 'EMAIL_ADDRESS_CONFLICT_ERROR' ||
-                e.message?.includes('EMAIL_ADDRESS_CONFLICT_ERROR')
-            )
-          ) {
-            const errorMessage =
-              setCustomerData?.setCustomerForOrder?.message ||
-              setCustomerData?.errors?.[0]?.message ||
-              'This email address is already registered. Please login to continue.';
-            setError(errorMessage);
-            openAuthModal('login');
-            return;
-          }
         }
 
         // Set shipping address (includes billing if needed)
@@ -203,26 +185,31 @@ export function useCheckoutProcess() {
           await setShippingMethodMutation.mutateAsync(selectedShippingMethod);
         }
 
-        // Create payment intent based on selected method
-        const paymentIntent = await createPaymentIntentMutation.mutateAsync({ paymentMethod });
+        // Process MercadoPago payment
+        const response = await fetch('/api/checkout/mercadopago', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({}),
+        });
 
-        // Handle different payment methods
-        if (paymentMethod === 'stripe') {
-          setClientSecret(paymentIntent.clientSecret || null);
-          setOrderCode(paymentIntent.orderCode);
-        } else if (paymentMethod === 'mercadopago') {
-          setRedirectUrl(paymentIntent.redirectUrl || null);
-          setOrderCode(paymentIntent.orderCode);
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.message || 'Failed to create MercadoPago payment');
         }
+
+        setRedirectUrl(result.redirectUrl);
+        setOrderCode(result.orderCode);
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'An error occurred during checkout';
         setError(errorMessage);
         throw err;
       }
     },
-    [setCustomerMutation, setShippingAddressMutation, setShippingMethodMutation, createPaymentIntentMutation, openAuthModal, isAuthenticated]
+    [setCustomerMutation, setShippingAddressMutation, setShippingMethodMutation, openAuthModal, isAuthenticated]
   );
-
   const resetCheckout = useCallback(() => {
     setClientSecret(null);
     setRedirectUrl(null);

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { OrderLine } from '@/lib/types';
+import { formatPrice } from '@/lib/checkout/utils';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/contexts/cart-context';
 import { Minus, Plus, Trash2, Loader2 } from 'lucide-react';
@@ -46,24 +47,8 @@ export function CartItem({ item, currencyCode }: CartItemProps) {
   };
 
   // ✅ util robusto
-  const formatPrice = (price: number, code?: string) => {
-    const safeCode =
-      (code && /^[A-Z]{3}$/.test(code) ? code : undefined) ??
-      (item.productVariant?.currencyCode && /^[A-Z]{3}$/.test(item.productVariant.currencyCode)
-        ? item.productVariant.currencyCode
-        : undefined) ??
-      'USD';
+  // ✅ util robusto
 
-    try {
-      return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: safeCode,
-      }).format(price / 100);
-    } catch {
-      // fallback ultra defensivo
-      return `${(price / 100).toFixed(2)} ${safeCode}`;
-    }
-  };
 
   // 👇 usamos un currency “seguro” para todas las llamadas
   const displayCurrency =
@@ -95,7 +80,7 @@ export function CartItem({ item, currencyCode }: CartItemProps) {
         <h3 className="text-sm font-medium text-brand-dark-blue truncate mb-1">
           {item.productVariant.product?.name || item.productVariant.name}
         </h3>
-        
+
         {/* Variant Name */}
         <p className="text-xs text-brand-dark-blue/70 mb-2">
           {item.productVariant.name}

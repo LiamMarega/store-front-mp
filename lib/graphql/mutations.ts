@@ -1,7 +1,7 @@
 import { gql } from 'graphql-request';
-import { 
-  ORDER_FRAGMENT, 
-  CUSTOMER_FRAGMENT, 
+import {
+  ORDER_FRAGMENT,
+  CUSTOMER_FRAGMENT,
   ORDER_BASIC_FRAGMENT,
   ORDER_SUMMARY_FRAGMENT,
   ORDER_WITH_ADDRESSES,
@@ -286,9 +286,19 @@ export const TRANSITION_TO_ADDING = gql`
   }
 `;
 
+
 export const CREATE_STRIPE_PAYMENT_INTENT = gql`
   mutation CreateStripePaymentIntent {
     createStripePaymentIntent
+  }
+`;
+
+export const CREATE_MERCADOPAGO_PAYMENT = gql`
+  mutation CreateMercadopagoPayment {
+    createMercadopagoPayment {
+      redirectUrl
+      orderCode
+    }
   }
 `;
 

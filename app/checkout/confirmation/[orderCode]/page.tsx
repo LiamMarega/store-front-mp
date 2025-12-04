@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -34,7 +34,8 @@ interface OrderData {
 export default function ConfirmationPage() {
   const params = useParams();
   const searchParams = useSearchParams();
-  
+  const router = useRouter();
+
   const orderCode = params.orderCode as string;
   const paymentIntent = searchParams.get('payment_intent');
   const redirectStatus = searchParams.get('redirect_status');
@@ -64,6 +65,11 @@ export default function ConfirmationPage() {
         }
 
         setOrder(data.order);
+
+        // Redirect to checkout if payment is not completed
+        if (data.order.state !== 'PaymentSettled' && data.order.state !== 'PaymentAuthorized') {
+          router.push('/checkout');
+        }
         setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch order');
@@ -97,7 +103,7 @@ export default function ConfirmationPage() {
     if (SUCCESS_STATES.includes(order.state)) {
       return 'success';
     }
-    
+
     if (PENDING_STATES.includes(order.state)) {
       // Check if there's a payment error
       const failedPayment = order.payments?.find(p => p.state === 'Error' || p.state === 'Declined');
@@ -251,7 +257,7 @@ export default function ConfirmationPage() {
   // Failed state
   if (displayStatus === 'failed') {
     const paymentError = order?.payments?.find(p => p.state === 'Error' || p.state === 'Declined')?.errorMessage;
-    
+
     return (
       <div className="min-h-screen bg-gradient-to-b from-brand-cream/30 to-white pt-28 pb-12 flex items-center justify-center">
         <div className="max-w-2xl mx-auto px-4 w-full">

@@ -4,17 +4,14 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
-import { loadStripe } from '@stripe/stripe-js';
-import { Elements } from '@stripe/react-stripe-js';
 
 // Components
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { ArrowRight, User, CreditCard, Globe } from 'lucide-react';
+import { ArrowRight, User, CreditCard, Loader2 } from 'lucide-react';
 
 // Checkout components
-import { PaymentStep } from '@/components/checkout/payment-step';
 import { OrderSummary } from '@/components/checkout/order-summary';
 import { CustomerInfoSection } from '@/components/checkout/customer-info-section';
 import { ShippingAddressSection } from '@/components/checkout/shipping-address-section';
@@ -24,9 +21,6 @@ import { ShippingMethodsSection } from '@/components/checkout/shipping-methods-s
 // Hooks and types
 import { useShippingMethods, useCheckoutProcess } from '@/hooks/use-checkout';
 import { customerSchema, CustomerFormData, CheckoutStep } from '@/lib/checkout/types';
-
-// Stripe configuration
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -39,10 +33,8 @@ export default function CheckoutPage() {
 
   const shippingMethods = shippingData?.shippingMethods || [];
   const [selectedShippingMethod, setSelectedShippingMethod] = useState<string>('');
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('stripe');
 
   const {
-    clientSecret,
     redirectUrl,
     orderCode,
     isProcessing,
@@ -83,22 +75,17 @@ export default function CheckoutPage() {
 
   // Auto-redirect to MercadoPago when redirect URL is available
   useEffect(() => {
-    if (redirectUrl && selectedPaymentMethod === 'mercadopago') {
+    if (redirectUrl) {
       const timer = setTimeout(() => {
         window.location.href = redirectUrl;
       }, 1500);
       return () => clearTimeout(timer);
     }
-  }, [redirectUrl, selectedPaymentMethod]);
+  }, [redirectUrl]);
 
   // Handle form submission
   const onSubmit = async (data: CustomerFormData) => {
-    await processCheckout(data, selectedShippingMethod, selectedPaymentMethod);
-  };
-
-  // Handle successful payment
-  const handlePaid = (orderCode: string) => {
-    router.push(`/checkout/confirmation/${orderCode}`);
+    await processCheckout(data, selectedShippingMethod);
   };
 
   // Handle back to customer info
@@ -107,7 +94,7 @@ export default function CheckoutPage() {
   };
 
   // Determine current step
-  const currentStep = clientSecret || redirectUrl ? CheckoutStep.PAYMENT : CheckoutStep.CUSTOMER_INFO;
+  const currentStep = redirectUrl ? CheckoutStep.PAYMENT : CheckoutStep.CUSTOMER_INFO;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-brand-cream/30 to-white pt-24 pb-12 sm:py-32">
@@ -156,39 +143,17 @@ export default function CheckoutPage() {
 
                   <Separator />
 
-                  {/* Payment Method Selection */}
+                  {/* Payment Method - Solo MercadoPago */}
                   <div className="space-y-4">
                     <h2 className="text-xl font-semibold text-brand-dark-blue">Payment Method</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div
-                        className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${selectedPaymentMethod === 'stripe'
-                            ? 'border-brand-blue bg-blue-50'
-                            : 'border-gray-200 hover:border-gray-300'
-                          }`}
-                        onClick={() => setSelectedPaymentMethod('stripe')}
-                      >
-                        <div className="flex items-center">
-                          <CreditCard className="w-5 h-5 mr-3" />
-                          <div>
-                            <p className="font-medium">Credit Card (Stripe)</p>
-                            <p className="text-sm text-gray-500">Pay with Visa, Mastercard, etc.</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div
-                        className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${selectedPaymentMethod === 'mercadopago'
-                            ? 'border-brand-blue bg-blue-50'
-                            : 'border-gray-200 hover:border-gray-300'
-                          }`}
-                        onClick={() => setSelectedPaymentMethod('mercadopago')}
-                      >
-                        <div className="flex items-center">
-                          <Globe className="w-5 h-5 mr-3" />
-                          <div>
-                            <p className="font-medium">MercadoPago</p>
-                            <p className="text-sm text-gray-500">Pay with MercadoPago account</p>
-                          </div>
+                    <div className="border-2 border-[#009EE3] rounded-lg p-4 bg-[#009EE3]/10">
+                      <div className="flex items-center">
+                        <CreditCard className="w-5 h-5 mr-3 text-[#009EE3]" />
+                        <div>
+                          <p className="font-medium text-[#009EE3]">MercadoPago</p>
+                          <p className="text-sm text-gray-600">
+                            Pay with credit/debit card or MercadoPago account
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -196,12 +161,12 @@ export default function CheckoutPage() {
 
                   <Button
                     type="submit"
-                    className="w-full h-12 text-lg font-semibold"
+                    className="w-full h-12 text-lg font-semibold bg-[#009EE3] hover:bg-[#0085C6]"
                     disabled={isSubmitting || isProcessing}
                   >
                     {isSubmitting || isProcessing ? (
                       <>
-                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                         Processing...
                       </>
                     ) : (
@@ -213,28 +178,38 @@ export default function CheckoutPage() {
                   </Button>
                 </form>
               ) : (
-                /* Payment Step */
+                /* Payment Step - Solo MercadoPago */
                 <>
-                  {selectedPaymentMethod === 'stripe' && clientSecret && orderCode ? (
-                    <Elements stripe={stripePromise} options={{ clientSecret }}>
-                      <PaymentStep clientSecret={clientSecret} orderCode={orderCode} onPaid={handlePaid} onBack={handleBack} />
-                    </Elements>
-                  ) : selectedPaymentMethod === 'mercadopago' && redirectUrl ? (
+                  {redirectUrl ? (
                     <div className="text-center py-8">
-                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-blue mx-auto mb-4"></div>
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#009EE3] mx-auto mb-4"></div>
                       <h3 className="text-xl font-semibold mb-2">Redirecting to MercadoPago</h3>
-                      <p className="text-gray-600 mb-6">You will be redirected to MercadoPago to complete your payment.</p>
-                      <Button
-                        onClick={() => window.location.href = redirectUrl}
-                        className="bg-[#009EE3] hover:bg-[#0085C6]"
-                      >
-                        Click here if not redirected automatically
-                      </Button>
+                      <p className="text-gray-600 mb-6">
+                        You will be redirected to MercadoPago to complete your payment.
+                      </p>
+                      <div className="space-y-4">
+                        <Button
+                          onClick={() => window.location.href = redirectUrl}
+                          className="bg-[#009EE3] hover:bg-[#0085C6] px-8"
+                        >
+                          Click here if not redirected automatically
+                        </Button>
+                        <Button
+                          onClick={handleBack}
+                          variant="outline"
+                          className="w-full"
+                        >
+                          Go Back
+                        </Button>
+                      </div>
+                      <p className="text-sm text-gray-500 mt-6">
+                        Order: {orderCode}
+                      </p>
                     </div>
                   ) : (
                     <div className="text-center py-8">
-                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-blue mx-auto mb-4"></div>
-                      <p className="text-gray-600">Loading payment form...</p>
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#009EE3] mx-auto mb-4"></div>
+                      <p className="text-gray-600">Creating payment link...</p>
                     </div>
                   )}
                 </>

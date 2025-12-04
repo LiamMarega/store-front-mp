@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/card';
 import { useCart } from '@/contexts/cart-context';
 import { CartItem } from '@/components/cart/cart-item';
 import { Separator } from '@/components/ui/separator';
+import { formatPrice } from '@/lib/checkout/utils';
 
 export function OrderSummary() {
   const { items, itemCount, order } = useCart();
@@ -27,7 +28,7 @@ export function OrderSummary() {
   return (
     <Card className="p-6 sticky top-24">
       <h3 className="text-lg font-semibold text-brand-dark-blue mb-4">Order Summary</h3>
-      
+
       {/* Cart Items */}
       {items.length > 0 && (
         <>
@@ -39,7 +40,7 @@ export function OrderSummary() {
           <Separator className="my-4" />
         </>
       )}
-      
+
       {/* Order Totals */}
       <div className="space-y-3">
         <div className="flex justify-between text-sm">
@@ -48,16 +49,16 @@ export function OrderSummary() {
             {formatPrice(order.total, order.currencyCode)}
           </span>
         </div>
-        
+
         <div className="flex justify-between text-sm">
           <span className="text-brand-dark-blue/70">Taxes</span>
           <span className="font-medium">
             {formatPrice(order.totalWithTax - order.total, order.currencyCode)}
           </span>
         </div>
-        
+
         <Separator />
-        
+
         <div className="flex justify-between text-lg font-semibold">
           <span>Total</span>
           <span className="text-brand-primary">

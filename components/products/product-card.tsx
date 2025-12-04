@@ -12,6 +12,7 @@ import { useCart } from '@/contexts/cart-context';
 import { toast } from 'sonner';
 import { ProductVariant, Asset } from '@/lib/types';
 import { getThumbnailUrl, getFullImageUrl } from '@/lib/utils';
+import { formatPrice } from '@/lib/checkout/utils';
 
 interface ProductCardProps {
   id: string;
@@ -51,7 +52,7 @@ export function ProductCard({
 
   // Get the first variant ID (most products have a default variant)
   const defaultVariantId = variants[0]?.id;
-  const displayPrice = priceWithTax || price || variants[0]?.priceWithTax || variants[0]?.price ; 
+  const displayPrice = priceWithTax || price || variants[0]?.priceWithTax || variants[0]?.price;
 
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -73,13 +74,7 @@ export function ProductCard({
     }
   };
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currencyCode,
-      minimumFractionDigits: 0,
-    }).format(price / 100); // Vendure stores prices in cents
-  };
+
 
   const aspectRatioClass = {
     square: 'aspect-square',
@@ -146,7 +141,7 @@ export function ProductCard({
             <div className="flex-shrink-0 min-w-0">
               <div className="text-[10px] sm:text-xs text-brand-dark-blue/60 mb-0.5 sm:mb-1">Starting at</div>
               <div className="text-sm sm:text-base md:text-lg lg:text-xl font-bold text-brand-dark-blue">
-                {formatPrice(displayPrice)}
+                {formatPrice(displayPrice, currencyCode)}
               </div>
             </div>
           ) : (
@@ -173,10 +168,10 @@ export function ProductCard({
         </div>
       </div>
       {/* Full card link overlay for better UX without nesting issues - hidden to screen readers to avoid double links */}
-      <Link 
-        href={`/product/${slug}`} 
-        className="absolute inset-0 z-0" 
-        aria-hidden="true" 
+      <Link
+        href={`/product/${slug}`}
+        className="absolute inset-0 z-0"
+        aria-hidden="true"
         tabIndex={-1}
       />
     </motion.div>

@@ -3,7 +3,8 @@
  */
 
 export const formatPrice = (price: number, currencyCode: string = 'USD'): string => {
-  return new Intl.NumberFormat('en-US', {
+  const locale = currencyCode === 'ARS' ? 'es-AR' : 'en-US';
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: currencyCode,
   }).format(price / 100);

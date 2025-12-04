@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchGraphQL } from '@/lib/vendure-server';
 import { GET_ACTIVE_ORDER_FOR_PAYMENT } from '@/lib/graphql/queries';
-import { TRANSITION_ORDER_TO_STATE, ADD_PAYMENT_TO_ORDER } from '@/lib/graphql/mutations';
+import { TRANSITION_ORDER_TO_STATE, CREATE_MERCADOPAGO_PAYMENT } from '@/lib/graphql/mutations';
 import { createErrorResponse, forwardCookies, HTTP_STATUS, ERROR_CODES } from '@/lib/api-utils';
 
 export async function POST(req: NextRequest) {
     try {
-        // 1. Verify active order exists
+        // 1. Verificar que existe una orden activa
         const orderRes = await fetchGraphQL(
             { query: GET_ACTIVE_ORDER_FOR_PAYMENT },
             { req }
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // 2. Transition order to ArrangingPayment state if needed
+        // 2. Asegurar que la orden esté en estado ArrangingPayment
         if (order.state !== 'ArrangingPayment') {
             const transitionRes = await fetchGraphQL(
                 { query: TRANSITION_ORDER_TO_STATE, variables: { state: 'ArrangingPayment' } },
@@ -57,109 +57,69 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        // 3. Add MercadoPago payment to order
+        // 3. Crear preferencia de MercadoPago
         const paymentRes = await fetchGraphQL(
-            {
-                query: ADD_PAYMENT_TO_ORDER,
-                variables: {
-                    input: {
-                        method: 'mercadopago',
-                        metadata: {}
-                    }
-                }
-            },
+            { query: CREATE_MERCADOPAGO_PAYMENT },
             { req }
         );
 
-        const paymentResult = paymentRes.data?.addPaymentToOrder;
-
-        if (paymentResult?.errorCode || paymentResult?.__typename !== 'Order') {
-            return createErrorResponse(
-                'Failed to add payment',
-                paymentResult?.message || 'Failed to create MercadoPago payment',
-                HTTP_STATUS.BAD_REQUEST,
-                paymentResult?.errorCode || ERROR_CODES.VALIDATION_ERROR,
-                paymentResult
+        if (paymentRes.errors) {
+            // Filtrar el error de 'me' que es solo de autenticación
+            const relevantErrors = paymentRes.errors.filter(error =>
+                error.path?.[0] !== 'me' ||
+                !error.message.includes('You are not currently authorized')
             );
+
+            if (relevantErrors.length > 0) {
+                return createErrorResponse(
+                    'Failed to create MercadoPago payment',
+                    relevantErrors[0]?.message || 'Failed to create MercadoPago payment',
+                    HTTP_STATUS.BAD_REQUEST,
+                    ERROR_CODES.VALIDATION_ERROR,
+                    relevantErrors
+                );
+            }
         }
 
-        // 4. Query order with payments to get MercadoPago redirect URL
-        const ORDER_WITH_PAYMENTS = `
-      query OrderWithPayments($code: String!) {
-        orderByCode(code: $code) {
-          id
-          code
-          payments {
-            id
-            method
-            metadata
-            state
-          }
-        }
-      }
-    `;
+        const paymentData = paymentRes.data?.createMercadopagoPayment;
 
-        const orderWithPayments = await fetchGraphQL(
-            {
-                query: ORDER_WITH_PAYMENTS,
-                variables: { code: order.code }
-            },
-            { req }
-        );
-
-        const payments = orderWithPayments.data?.orderByCode?.payments || [];
-        const mercadopagoPayment = payments.find((p: any) => p.method === 'mercadopago');
-
-        if (!mercadopagoPayment?.metadata) {
+        if (!paymentData) {
             return createErrorResponse(
-                'No payment metadata',
-                'Failed to get MercadoPago payment details',
+                'No payment data',
+                'Failed to get payment data from MercadoPago',
                 HTTP_STATUS.INTERNAL_ERROR,
                 ERROR_CODES.INTERNAL_ERROR
             );
         }
 
-        // 5. Parse metadata to extract redirect URL
-        let metadata;
-        try {
-            metadata = typeof mercadopagoPayment.metadata === 'string'
-                ? JSON.parse(mercadopagoPayment.metadata)
-                : mercadopagoPayment.metadata;
-        } catch (error) {
-            return createErrorResponse(
-                'Invalid payment metadata',
-                'Failed to parse MercadoPago payment metadata',
-                HTTP_STATUS.INTERNAL_ERROR,
-                ERROR_CODES.INTERNAL_ERROR
-            );
-        }
-
-        const redirectUrl = metadata.init_point;
+        // Asegúrate de que paymentData tenga la estructura correcta
+        const redirectUrl = paymentData.redirectUrl || paymentData.init_point || paymentData.sandbox_init_point;
+        const orderCode = paymentData.orderCode || order.code;
 
         if (!redirectUrl) {
+            console.error('MercadoPago response:', paymentData);
             return createErrorResponse(
                 'No redirect URL',
-                'MercadoPago redirect URL not found in payment metadata',
+                'Failed to get redirect URL from MercadoPago. Response: ' + JSON.stringify(paymentData),
                 HTTP_STATUS.INTERNAL_ERROR,
-                ERROR_CODES.INTERNAL_ERROR,
-                { metadata }
+                ERROR_CODES.INTERNAL_ERROR
             );
         }
 
-        // 6. Return redirect URL and order code
         const res = NextResponse.json({
             redirectUrl,
-            orderCode: order.code,
+            orderCode,
+            paymentId: paymentData.id || paymentData.preferenceId
         });
 
         forwardCookies(res, orderRes);
         forwardCookies(res, paymentRes);
-        forwardCookies(res, orderWithPayments);
         return res;
     } catch (error) {
+        console.error('Error creating MercadoPago payment:', error);
         return createErrorResponse(
             'Internal server error',
-            error instanceof Error ? error.message : 'Failed to process MercadoPago payment',
+            error instanceof Error ? error.message : 'Failed to create MercadoPago payment',
             HTTP_STATUS.INTERNAL_ERROR,
             ERROR_CODES.INTERNAL_ERROR
         );
