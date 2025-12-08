@@ -30,18 +30,18 @@ function mapOrderState(state: string): UserOrder['status'] {
  */
 function calculateDeliveryDate(orderDate: string, orderState: string): string | undefined {
   if (!orderDate) return undefined;
-  
+
   const date = new Date(orderDate);
-  
+
   // If already shipped/delivered, estimate based on state
   if (orderState === 'Delivered') {
     return date.toISOString();
   }
-  
+
   // Estimate 5-7 business days for processing and shipping
   const estimatedDays = orderState === 'Shipped' || orderState === 'PartiallyShipped' ? 2 : 7;
   date.setDate(date.getDate() + estimatedDays);
-  
+
   return date.toISOString();
 }
 
@@ -53,10 +53,10 @@ function transformOrderProducts(lines: any[]): OrderProduct[] {
     const productVariant = line.productVariant || {};
     const product = productVariant.product || {};
     const asset = line.featuredAsset || productVariant.featuredAsset || product.featuredAsset;
-    
+
     // Extract custom fields (color, size, etc.)
     const customFields = line.customFields || {};
-    
+
     return {
       id: line.id,
       name: product.name || productVariant.name || 'Unknown Product',
@@ -75,7 +75,7 @@ function transformOrderProducts(lines: any[]): OrderProduct[] {
  */
 function formatDeliveryAddress(shippingAddress: any): string {
   if (!shippingAddress) return 'Address not available';
-  
+
   const parts = [
     shippingAddress.streetLine1,
     shippingAddress.streetLine2,
@@ -84,7 +84,7 @@ function formatDeliveryAddress(shippingAddress: any): string {
     shippingAddress.postalCode,
     shippingAddress.countryCode,
   ].filter(Boolean);
-  
+
   return parts.join(', ') || 'Address not available';
 }
 
@@ -94,12 +94,12 @@ function formatDeliveryAddress(shippingAddress: any): string {
 function transformOrder(order: any): UserOrder {
   const products = transformOrderProducts(order.lines || []);
   const productCount = products.reduce((sum, p) => sum + p.quantity, 0);
-  
+
   const deliveryDate = calculateDeliveryDate(
     order.orderPlacedAt || order.createdAt,
     order.state
   );
-  
+
   return {
     id: order.id,
     orderNumber: order.code,
@@ -107,7 +107,7 @@ function transformOrder(order: any): UserOrder {
     status: mapOrderState(order.state),
     deliveryDate,
     deliveryAddress: formatDeliveryAddress(order.shippingAddress),
-    currency: order.currencyCode || 'USD',
+    currency: order.currencyCode || 'ARS',
     totalAmount: order.totalWithTax || 0,
     productCount,
     products,
@@ -125,27 +125,27 @@ function buildOrderOptions(
   const take = Math.min(parseInt(limit || '10', 10), 100); // Max 100 items
   const currentPage = Math.max(parseInt(page || '1', 10), 1);
   const skip = (currentPage - 1) * take;
-  
+
   const options: any = {
     take,
     skip,
     sort: { createdAt: 'DESC' }, // Most recent first
   };
-  
+
   // Apply status filters
   if (status === 'current') {
     // Active orders (not delivered or cancelled)
     options.filter = {
       active: { eq: true },
-      state: { 
-        notIn: ['Delivered', 'Cancelled'] 
+      state: {
+        notIn: ['Delivered', 'Cancelled']
       },
     };
   } else if (status === 'unpaid') {
     // Orders awaiting payment
     options.filter = {
-      state: { 
-        in: ['ArrangingPayment', 'PaymentAuthorized'] 
+      state: {
+        in: ['ArrangingPayment', 'PaymentAuthorized']
       },
     };
   } else if (status && status !== 'all') {
@@ -154,7 +154,7 @@ function buildOrderOptions(
       state: { eq: status },
     };
   }
-  
+
   return { options, currentPage, take };
 }
 
@@ -174,10 +174,10 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get('status');
     const limit = searchParams.get('limit');
     const page = searchParams.get('page');
-    
+
     // Build order options with pagination
     const { options, currentPage, take } = buildOrderOptions(status, limit, page);
-    
+
     // Fetch orders from Vendure
     const result = await fetchGraphQL(
       {
@@ -186,7 +186,7 @@ export async function GET(req: NextRequest) {
       },
       { req }
     );
-    
+
     // Handle errors
     if (result.errors) {
       const isUnauthorized = result.errors.some(
@@ -194,7 +194,7 @@ export async function GET(req: NextRequest) {
           e.extensions?.code === 'FORBIDDEN' ||
           e.message?.includes('not currently authorized')
       );
-      
+
       if (isUnauthorized) {
         return NextResponse.json(
           {
@@ -212,7 +212,7 @@ export async function GET(req: NextRequest) {
           { status: 401 }
         );
       }
-      
+
       console.error('GraphQL errors fetching orders:', result.errors);
       return NextResponse.json(
         {
@@ -231,10 +231,10 @@ export async function GET(req: NextRequest) {
         { status: 500 }
       );
     }
-    
+
     // Extract customer and orders
     const customer = result.data?.activeCustomer;
-    
+
     if (!customer) {
       return NextResponse.json({
         orders: [],
@@ -246,16 +246,16 @@ export async function GET(req: NextRequest) {
         },
       });
     }
-    
+
     const ordersData = customer.orders || {};
     const totalItems = ordersData.totalItems || 0;
     const orders: UserOrder[] = (ordersData.items || []).map(transformOrder);
-    
+
     // Calculate pagination
     const totalPages = Math.ceil(totalItems / take);
     const hasNextPage = currentPage < totalPages;
     const hasPreviousPage = currentPage > 1;
-    
+
     // Build response
     const response = NextResponse.json({
       orders,
@@ -268,18 +268,18 @@ export async function GET(req: NextRequest) {
         limit: take,
       },
     });
-    
+
     // Forward session cookies if present
     if (result.setCookies) {
       result.setCookies.forEach((cookie) => {
         response.headers.append('Set-Cookie', cookie);
       });
     }
-    
+
     return response;
   } catch (error) {
     console.error('Error fetching orders:', error);
-    
+
     return NextResponse.json(
       {
         error: 'Failed to fetch orders',

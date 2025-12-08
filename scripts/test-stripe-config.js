@@ -5,7 +5,7 @@
  * Ejecuta: node scripts/test-stripe-config.js
  */
 
-const VENDURE_API = 'http://localhost:3000/shop-api';
+const VENDURE_API = 'http://localhost:8080/shop-api';
 
 async function fetchGraphQL(query, variables = {}) {
   const response = await fetch(VENDURE_API, {
@@ -27,7 +27,7 @@ async function testVendureConnection() {
         __typename
       }
     `);
-    
+
     if (result.data) {
       console.log('✅ Vendure is running and accessible\n');
       return true;
@@ -54,10 +54,10 @@ async function testStripePluginInstalled() {
         }
       }
     `);
-    
+
     const mutations = result.data?.__type?.fields?.map(f => f.name) || [];
     const hasStripe = mutations.includes('createStripePaymentIntent');
-    
+
     if (hasStripe) {
       console.log('✅ StripePlugin is installed (createStripePaymentIntent mutation exists)\n');
       return true;
@@ -88,12 +88,12 @@ async function testPaymentMethods() {
         }
       }
     `);
-    
+
     const paymentMethods = result.data?.paymentMethods || [];
-    const stripeMethod = paymentMethods.find(pm => 
+    const stripeMethod = paymentMethods.find(pm =>
       pm.handler.code === 'stripe' || pm.code.includes('stripe')
     );
-    
+
     if (stripeMethod) {
       console.log('✅ Stripe Payment Method is configured');
       console.log('   ID:', stripeMethod.id);
@@ -115,18 +115,18 @@ async function testPaymentMethods() {
 async function testCreatePaymentIntent() {
   console.log('🔍 Testing createStripePaymentIntent mutation...');
   console.log('   (This will fail if there\'s no active order, which is expected)\n');
-  
+
   try {
     const result = await fetchGraphQL(`
       mutation {
         createStripePaymentIntent
       }
     `);
-    
+
     if (result.errors) {
       // Analyze the error to determine the issue
       const errorMsg = result.errors[0]?.message || '';
-      
+
       if (errorMsg.includes('No Order with the code')) {
         console.log('✅ Mutation works! (Error is expected - no test order exists)');
         console.log('   The mutation is accessible and will work with a real order\n');

@@ -2,12 +2,12 @@
  * Test function to verify Vendure connection
  */
 
-const VENDURE_SHOP_API = process.env.VENDURE_SHOP_API_URL || 'http://localhost:3000/shop-api';
+const VENDURE_SHOP_API = process.env.VENDURE_SHOP_API_URL || 'http://localhost:8080/shop-api';
 
 export async function testVendureConnection() {
   try {
     console.log('Testing Vendure connection at:', VENDURE_SHOP_API);
-    
+
     const response = await fetch(VENDURE_SHOP_API, {
       method: 'POST',
       headers: {
@@ -35,7 +35,7 @@ export async function testVendureConnection() {
 
     const result = await response.json();
     console.log('Vendure connection test result:', result);
-    
+
     return {
       success: true,
       data: result,

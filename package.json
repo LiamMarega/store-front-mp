@@ -13,6 +13,8 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.2",
+    "@mercadopago/sdk-js": "^0.0.3",
+    "@mercadopago/sdk-react": "^1.0.6",
     "@radix-ui/react-accordion": "^1.1.2",
     "@radix-ui/react-alert-dialog": "^1.0.5",
     "@radix-ui/react-aspect-ratio": "^1.0.3",
@@ -56,6 +58,7 @@
     "graphql-request": "^6.1.0",
     "input-otp": "^1.2.4",
     "lucide-react": "^0.292.0",
+    "mercadopago": "^2.11.0",
     "next": "^14.2.33",
     "next-themes": "^0.4.6",
     "react": "^18",

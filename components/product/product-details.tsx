@@ -45,7 +45,7 @@ export function ProductDetails({ product }: ProductDetailsProps) {
 
   const mainVariant = product.variants?.find(v => v.id === selectedVariant) || product.variants?.[0];
   const price = mainVariant?.priceWithTax;
-  const currencyCode = mainVariant?.currencyCode || 'USD';
+  const currencyCode = mainVariant?.currencyCode || 'ARS';
   const stockLevel = mainVariant?.stockLevel;
 
   // Check if product should show Add to Cart button

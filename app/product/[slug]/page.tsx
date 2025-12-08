@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import {  fetchGraphQL } from '@/lib/vendure-server';
+import { fetchGraphQL } from '@/lib/vendure-server';
 import { ProductPage } from '@/components/product/product-page';
 import { Product } from '@/lib/types';
 import { GET_ALL_PRODUCTS, GET_PRODUCT_BY_SLUG } from '@/lib/graphql/queries';
@@ -31,15 +31,15 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
 
     const product = result.data.product;
     const variant = product.variants?.[0];
-    const price = variant?.priceWithTax 
+    const price = variant?.priceWithTax
       ? new Intl.NumberFormat('en-US', {
-          style: 'currency',
-          currency: variant.currencyCode,
-        }).format(variant.priceWithTax / 100)
+        style: 'currency',
+        currency: variant.currencyCode,
+      }).format(variant.priceWithTax / 100)
       : null;
 
     const description = product.description || `Discover ${product.name} - Premium quality furniture for your home.${price ? ` Starting at ${price}.` : ''} Free shipping on orders over $200.`;
-    
+
     const imageUrl = product.featuredAsset?.preview || '/images/logos/logo_compacto.png';
 
     return {
@@ -108,13 +108,13 @@ export async function generateStaticParams() {
     });
 
     const products = result.data?.products?.items || [];
-    
+
     // Filter out any invalid products and return valid slugs only
     // Only include products that are enabled and have a valid slug
     // This prevents "Product not found" errors during build
     return products
-      .filter((product: Product) => 
-        product?.slug && 
+      .filter((product: Product) =>
+        product?.slug &&
         product?.enabled === true // Only include enabled products
       )
       .map((product: Product) => ({
@@ -158,10 +158,10 @@ export default async function ProductPageRoute({ params }: ProductPageProps) {
 
     const product = result.data.product;
     const variant = product.variants?.[0];
-    const price = variant?.priceWithTax 
+    const price = variant?.priceWithTax
       ? variant.priceWithTax / 100
       : null;
-    const currencyCode = variant?.currencyCode || 'USD';
+    const currencyCode = variant?.currencyCode || 'ARS';
     const imageUrl = product.featuredAsset?.preview || '';
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3001';
     const productUrl = `${siteUrl}/product/${params.slug}`;
@@ -185,8 +185,8 @@ export default async function ProductPageRoute({ params }: ProductPageProps) {
         priceCurrency: currencyCode,
         price: price.toString(),
         priceValidUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        availability: variant?.stockLevel && variant.stockLevel !== '0' 
-          ? 'https://schema.org/InStock' 
+        availability: variant?.stockLevel && variant.stockLevel !== '0'
+          ? 'https://schema.org/InStock'
           : 'https://schema.org/OutOfStock',
         itemCondition: 'https://schema.org/NewCondition',
         seller: {
@@ -273,7 +273,7 @@ export default async function ProductPageRoute({ params }: ProductPageProps) {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbData) }}
         />
         <ProductPage product={product} relatedProducts={[]} />
-        
+
       </>
     );
   } catch (error) {

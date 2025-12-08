@@ -221,7 +221,7 @@ florida_home_front/
    ```
 
 4. **Access Vendure Admin**
-   Navigate to [http://localhost:3000/admin](http://localhost:3000/admin)
+   Navigate to [http://localhost:3000/admin](http://localhost:8080/admin)
 
 ## 🔧 Configuration
 
@@ -229,9 +229,9 @@ florida_home_front/
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `VENDURE_SHOP_API_URL` | Vendure Shop API endpoint | `http://localhost:3000/shop-api` |
-| `VENDURE_ADMIN_API_URL` | Vendure Admin API endpoint | `http://localhost:3000/admin-api` |
-| `NEXT_PUBLIC_VENDURE_API_URL` | Public Vendure API URL | `http://localhost:3000/shop-api` |
+| `VENDURE_SHOP_API_URL` | Vendure Shop API endpoint | `http://localhost:8080/shop-api` |
+| `VENDURE_ADMIN_API_URL` | Vendure Admin API endpoint | `http://localhost:8080/admin-api` |
+| `NEXT_PUBLIC_VENDURE_API_URL` | Public Vendure API URL | `http://localhost:8080/shop-api` |
 | `NEXT_PUBLIC_SITE_URL` | Public site URL | `http://localhost:3001` |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Stripe publishable key | `pk_test_...` |
 | `STRIPE_SECRET_KEY` | Stripe secret key (server-side only) | `sk_test_...` |
@@ -826,14 +826,14 @@ Recommended events to track:
 ```typescript
 // Begin checkout
 gtag('event', 'begin_checkout', {
-  currency: 'USD',
+  currency: 'ARS',
   value: orderTotal,
   items: orderItems
 });
 
 // Add payment info
 gtag('event', 'add_payment_info', {
-  currency: 'USD',
+  currency: 'ARS',
   value: orderTotal,
   payment_type: 'credit_card'
 });
@@ -842,7 +842,7 @@ gtag('event', 'add_payment_info', {
 gtag('event', 'purchase', {
   transaction_id: orderCode,
   value: orderTotal,
-  currency: 'USD',
+  currency: 'ARS',
   tax: taxAmount,
   shipping: shippingCost,
   items: orderItems

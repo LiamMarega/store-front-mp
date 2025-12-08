@@ -17,6 +17,7 @@ import { CustomerInfoSection } from '@/components/checkout/customer-info-section
 import { ShippingAddressSection } from '@/components/checkout/shipping-address-section';
 import { BillingAddressSection } from '@/components/checkout/billing-address-section';
 import { ShippingMethodsSection } from '@/components/checkout/shipping-methods-section';
+import { MercadoPagoPayment } from '@/components/checkout/mercadopago-payment';
 
 // Hooks and types
 import { useShippingMethods, useCheckoutProcess } from '@/hooks/use-checkout';
@@ -36,7 +37,9 @@ export default function CheckoutPage() {
 
   const {
     redirectUrl,
+    preferenceId,
     orderCode,
+    totalAmount,
     isProcessing,
     error: checkoutError,
     processCheckout,
@@ -73,18 +76,20 @@ export default function CheckoutPage() {
     }
   }, [selectedShippingMethod, setValue]);
 
-  // Auto-redirect to MercadoPago when redirect URL is available
+  // Auto-redirect to MercadoPago when redirect URL is available (fallback for old flow)
   useEffect(() => {
-    if (redirectUrl) {
+    if (redirectUrl && !preferenceId) {
       const timer = setTimeout(() => {
         window.location.href = redirectUrl;
       }, 1500);
       return () => clearTimeout(timer);
     }
-  }, [redirectUrl]);
+  }, [redirectUrl, preferenceId]);
 
   // Handle form submission
-  const onSubmit = async (data: CustomerFormData) => {
+  const onSubmit = async (data: CustomerFormData, event?: React.BaseSyntheticEvent) => {
+    // Defensivo: evitar cualquier submit nativo que cause refresh
+    event?.preventDefault();
     await processCheckout(data, selectedShippingMethod);
   };
 
@@ -93,8 +98,8 @@ export default function CheckoutPage() {
     resetCheckout();
   };
 
-  // Determine current step
-  const currentStep = redirectUrl ? CheckoutStep.PAYMENT : CheckoutStep.CUSTOMER_INFO;
+  // Determine current step - show payment if we have orderCode and totalAmount (or preferenceId/redirectUrl for fallback)
+  const currentStep = (orderCode && (totalAmount || preferenceId || redirectUrl)) ? CheckoutStep.PAYMENT : CheckoutStep.CUSTOMER_INFO;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-brand-cream/30 to-white pt-24 pb-12 sm:py-32">
@@ -178,9 +183,16 @@ export default function CheckoutPage() {
                   </Button>
                 </form>
               ) : (
-                /* Payment Step - Solo MercadoPago */
+                /* Payment Step - MercadoPago Checkout API */
                 <>
-                  {redirectUrl ? (
+                  {orderCode && totalAmount ? (
+                    <MercadoPagoPayment
+                      orderCode={orderCode}
+                      totalAmount={totalAmount}
+                      onBack={handleBack}
+                    />
+                  ) : redirectUrl ? (
+                    // Fallback to redirect flow if preferenceId is not available
                     <div className="text-center py-8">
                       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#009EE3] mx-auto mb-4"></div>
                       <h3 className="text-xl font-semibold mb-2">Redirecting to MercadoPago</h3>
@@ -209,7 +221,7 @@ export default function CheckoutPage() {
                   ) : (
                     <div className="text-center py-8">
                       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#009EE3] mx-auto mb-4"></div>
-                      <p className="text-gray-600">Creating payment link...</p>
+                      <p className="text-gray-600">Creating payment preference...</p>
                     </div>
                   )}
                 </>

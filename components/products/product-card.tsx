@@ -42,7 +42,7 @@ export function ProductCard({
   description,
   price,
   priceWithTax,
-  currencyCode = 'USD',
+  currencyCode = 'ARS',
   hoverAnimation = true,
   showQuickAdd = true,
   imageAspectRatio = 'square',

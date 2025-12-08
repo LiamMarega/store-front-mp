@@ -10,10 +10,10 @@ import Link from 'next/link';
 export function CartPage() {
   const { items, itemCount, total, order, clearCart, isUpdating, isLoading } = useCart();
 
-  const formatPrice = (price: number, currencyCode: string = 'USD') => {
+  const formatPrice = (price: number, currencyCode: string = 'ARS') => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: currencyCode || 'USD',
+      currency: currencyCode || 'ARS',
     }).format(price / 100);
   };
 
@@ -87,7 +87,7 @@ export function CartPage() {
         <div className="lg:col-span-1">
           <div className="bg-gray-50 rounded-lg p-6 sticky top-4">
             <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
-            
+
             <div className="space-y-3 mb-6">
               <div className="flex justify-between">
                 <span>Subtotal:</span>

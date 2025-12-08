@@ -25,7 +25,7 @@ export function ProductHero({ product }: ProductHeroProps) {
 
   const mainVariant = product.variants?.[0];
   const price = mainVariant?.priceWithTax;
-  const currencyCode = mainVariant?.currencyCode || 'USD';
+  const currencyCode = mainVariant?.currencyCode || 'ARS';
   const stockLevel = mainVariant?.stockLevel;
 
   // Check if product should show Add to Cart button
@@ -107,7 +107,7 @@ export function ProductHero({ product }: ProductHeroProps) {
           >
             {/* Breadcrumb */}
             <div className="flex items-center justify-center lg:justify-start gap-2 mb-6">
-              <Link 
+              <Link
                 href="/product"
                 className="flex items-center gap-2 text-brand-dark-blue/70 hover:text-brand-primary transition-colors"
               >
@@ -150,19 +150,19 @@ export function ProductHero({ product }: ProductHeroProps) {
                   className="bg-brand-primary hover:bg-brand-primary/90 text-white px-8 py-4 text-lg font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
                 />
               )}
-              
+
               <div className="flex gap-3 justify-center lg:justify-start">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="lg"
                   className="border-2 border-brand-dark-blue text-brand-dark-blue hover:bg-brand-dark-blue hover:text-white px-6 py-4 rounded-full transition-all duration-300"
                 >
                   <Heart className="w-5 h-5 mr-2" />
                   Wishlist
                 </Button>
-                
-                <Button 
-                  variant="outline" 
+
+                <Button
+                  variant="outline"
                   size="lg"
                   onClick={handleShare}
                   className="border-2 border-brand-dark-blue text-brand-dark-blue hover:bg-brand-dark-blue hover:text-white px-6 py-4 rounded-full transition-all duration-300"

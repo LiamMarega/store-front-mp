@@ -2,7 +2,7 @@
  * Utility functions for checkout process
  */
 
-export const formatPrice = (price: number, currencyCode: string = 'USD'): string => {
+export const formatPrice = (price: number, currencyCode: string = 'ARS'): string => {
   const locale = currencyCode === 'ARS' ? 'es-AR' : 'en-US';
   return new Intl.NumberFormat(locale, {
     style: 'currency',

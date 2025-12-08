@@ -147,15 +147,28 @@ export const SET_ORDER_BILLING_ADDRESS = gql`
 `;
 
 export const ADD_PAYMENT_TO_ORDER = gql`
-  ${ORDER_FRAGMENT}
   mutation AddPaymentToOrder($input: PaymentInput!) {
     addPaymentToOrder(input: $input) {
+      __typename
       ... on Order {
-        ...Order
+        id
+        state
+        code
+        totalWithTax
       }
-      ... on ErrorResult {
+      ... on OrderPaymentStateError {
         errorCode
         message
+      }
+      ... on PaymentDeclinedError {
+        errorCode
+        message
+        paymentErrorMessage
+      }
+      ... on PaymentFailedError {
+        errorCode
+        message
+        paymentErrorMessage
       }
     }
   }
@@ -297,6 +310,7 @@ export const CREATE_MERCADOPAGO_PAYMENT = gql`
   mutation CreateMercadopagoPayment {
     createMercadopagoPayment {
       redirectUrl
+      preferenceId
       orderCode
     }
   }

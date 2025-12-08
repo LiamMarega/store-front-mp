@@ -26,7 +26,7 @@ function transformOrderProducts(lines: any[]): OrderProduct[] {
     const product = productVariant.product || {};
     const asset = line.featuredAsset || productVariant.featuredAsset || product.featuredAsset;
     const customFields = line.customFields || {};
-    
+
     return {
       id: line.id,
       name: product.name || productVariant.name || 'Unknown Product',
@@ -44,7 +44,7 @@ function transformOrderProducts(lines: any[]): OrderProduct[] {
 export async function GET(req: NextRequest) {
   try {
     console.log('[PROFILE API] Starting profile fetch...');
-    
+
     const { searchParams } = new URL(req.url);
     const orderLimit = searchParams.get('orderLimit') || '10';
     const orderPage = searchParams.get('orderPage') || '1';
@@ -64,7 +64,7 @@ export async function GET(req: NextRequest) {
     console.log('[PROFILE API] Cookies from request:', req.headers.get('cookie')?.substring(0, 100) || 'No cookies');
 
     const result = await fetchGraphQL(
-      { 
+      {
         query: GET_ACTIVE_CUSTOMER,
         variables: { orderOptions },
       },
@@ -83,7 +83,7 @@ export async function GET(req: NextRequest) {
 
     if (result.errors) {
       console.log('[PROFILE API] GraphQL errors detected:', JSON.stringify(result.errors, null, 2));
-      
+
       const isUnauthorized = result.errors.some(
         (e) => e.extensions?.code === 'FORBIDDEN' || e.message?.includes('not currently authorized')
       );
@@ -104,7 +104,7 @@ export async function GET(req: NextRequest) {
     }
 
     const customer = result.data?.activeCustomer;
-    
+
     console.log('[PROFILE API] Customer data:', {
       customerExists: !!customer,
       customerId: customer?.id,
@@ -116,7 +116,7 @@ export async function GET(req: NextRequest) {
       ordersTotalItems: customer?.orders?.totalItems || 0,
       fullCustomerData: JSON.stringify(customer, null, 2).substring(0, 500), // First 500 chars for debugging
     });
-    
+
     if (!customer) {
       console.log('[PROFILE API] Customer is null - user not authenticated or not found');
       console.log('[PROFILE API] Full result.data:', JSON.stringify(result.data, null, 2));
@@ -127,7 +127,7 @@ export async function GET(req: NextRequest) {
     }
 
     console.log('[PROFILE API] Starting data transformation...');
-    
+
     // Transform addresses
     const addresses: UserAddress[] = (customer.addresses || []).map((addr: any) => ({
       id: addr.id,
@@ -148,28 +148,28 @@ export async function GET(req: NextRequest) {
     // Transform orders
     const ordersData = customer.orders;
     const ordersTotalItems = ordersData?.totalItems || 0;
-    
+
     console.log('[PROFILE API] Orders data:', {
       ordersExists: !!ordersData,
       itemsCount: ordersData?.items?.length || 0,
       totalItems: ordersTotalItems,
     });
-    
+
     const orders: UserOrder[] = (ordersData?.items || []).map((order: any) => {
       const products = transformOrderProducts(order.lines || []);
       const productCount = products.reduce((sum, p) => sum + p.quantity, 0);
 
       const deliveryAddress = order.shippingAddress
         ? [
-            order.shippingAddress.streetLine1,
-            order.shippingAddress.streetLine2,
-            order.shippingAddress.city,
-            order.shippingAddress.province,
-            order.shippingAddress.postalCode,
-            order.shippingAddress.countryCode,
-          ]
-            .filter(Boolean)
-            .join(', ')
+          order.shippingAddress.streetLine1,
+          order.shippingAddress.streetLine2,
+          order.shippingAddress.city,
+          order.shippingAddress.province,
+          order.shippingAddress.postalCode,
+          order.shippingAddress.countryCode,
+        ]
+          .filter(Boolean)
+          .join(', ')
         : 'Address not available';
 
       // Calculate delivery date
@@ -185,7 +185,7 @@ export async function GET(req: NextRequest) {
         status: mapOrderState(order.state),
         deliveryDate,
         deliveryAddress,
-        currency: order.currencyCode || 'USD',
+        currency: order.currencyCode || 'ARS',
         totalAmount: order.totalWithTax || 0,
         productCount,
         products,
@@ -211,7 +211,7 @@ export async function GET(req: NextRequest) {
     });
 
     const response = NextResponse.json({ profile });
-    
+
     // Forward cookies if present
     if (result.setCookies) {
       console.log('[PROFILE API] Forwarding cookies:', result.setCookies.length);

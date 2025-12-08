@@ -21,18 +21,18 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   const router = useRouter();
   const { items, itemCount, order, isLoading } = useCart();
 
-  const formatPrice = (price: number, currencyCode: string = 'USD') => {
+  const formatPrice = (price: number, currencyCode: string = 'ARS') => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: currencyCode,
     }).format(price / 100);
   };
 
-  const amountUntilFreeShipping = order 
+  const amountUntilFreeShipping = order
     ? Math.max(0, FREE_SHIPPING_THRESHOLD - order.totalWithTax)
     : FREE_SHIPPING_THRESHOLD;
 
-  const shippingProgress = order 
+  const shippingProgress = order
     ? Math.min(100, (order.totalWithTax / FREE_SHIPPING_THRESHOLD) * 100)
     : 0;
 
@@ -45,8 +45,8 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent 
-        side="right" 
+      <SheetContent
+        side="right"
         className="w-full sm:max-w-lg p-0 flex flex-col h-full [&>button]:hidden "
       >
         {/* Header */}
@@ -131,9 +131,9 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                     exit={{ opacity: 0, x: 20 }}
                     transition={{ delay: index * 0.05 }}
                   >
-                    <CartDrawerItem 
-                      item={item} 
-                      currencyCode={order?.currencyCode} 
+                    <CartDrawerItem
+                      item={item}
+                      currencyCode={order?.currencyCode}
                     />
                   </motion.div>
                 ))}
@@ -166,7 +166,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
               </Button>
 
               {/* Continue Shopping Link */}
-             
+
             </div>
           </>
         )}

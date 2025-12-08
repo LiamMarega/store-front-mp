@@ -29,7 +29,7 @@ function transformOrderProducts(lines: any[]): OrderProduct[] {
     const product = productVariant.product || {};
     const asset = line.featuredAsset || productVariant.featuredAsset || product.featuredAsset;
     const customFields = line.customFields || {};
-    
+
     return {
       id: line.id,
       name: product.name || productVariant.name || 'Unknown Product',
@@ -103,7 +103,7 @@ export async function GET(req: NextRequest) {
     }
 
     const customer = result.data?.activeCustomer;
-    
+
     if (!customer || !customer.orders?.items) {
       return NextResponse.json({ orders: [] });
     }
@@ -111,22 +111,22 @@ export async function GET(req: NextRequest) {
     // Transform Vendure orders to UserOrder format
     const ordersData = customer.orders;
     const totalItems = ordersData.totalItems || 0;
-    
+
     const orders: UserOrder[] = (ordersData.items || []).map((order: any) => {
       const products = transformOrderProducts(order.lines || []);
       const productCount = products.reduce((sum, p) => sum + p.quantity, 0);
 
       const deliveryAddress = order.shippingAddress
         ? [
-            order.shippingAddress.streetLine1,
-            order.shippingAddress.streetLine2,
-            order.shippingAddress.city,
-            order.shippingAddress.province,
-            order.shippingAddress.postalCode,
-            order.shippingAddress.countryCode,
-          ]
-            .filter(Boolean)
-            .join(', ')
+          order.shippingAddress.streetLine1,
+          order.shippingAddress.streetLine2,
+          order.shippingAddress.city,
+          order.shippingAddress.province,
+          order.shippingAddress.postalCode,
+          order.shippingAddress.countryCode,
+        ]
+          .filter(Boolean)
+          .join(', ')
         : 'Address not available';
 
       // Calculate delivery date
@@ -142,14 +142,14 @@ export async function GET(req: NextRequest) {
         status: mapOrderState(order.state),
         deliveryDate,
         deliveryAddress,
-        currency: order.currencyCode || 'USD',
+        currency: order.currencyCode || 'ARS',
         totalAmount: order.totalWithTax || 0,
         productCount,
         products,
       };
     });
 
-    const response = NextResponse.json({ 
+    const response = NextResponse.json({
       orders,
       pagination: {
         totalItems,
@@ -158,7 +158,7 @@ export async function GET(req: NextRequest) {
         hasNextPage: currentPage < Math.ceil(totalItems / take),
       },
     });
-    
+
     if (result.setCookies) {
       result.setCookies.forEach((cookie) => {
         response.headers.append('Set-Cookie', cookie);

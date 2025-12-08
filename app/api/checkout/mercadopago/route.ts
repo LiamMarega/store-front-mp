@@ -57,63 +57,15 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        // 3. Crear preferencia de MercadoPago
-        const paymentRes = await fetchGraphQL(
-            { query: CREATE_MERCADOPAGO_PAYMENT },
-            { req }
-        );
-
-        if (paymentRes.errors) {
-            // Filtrar el error de 'me' que es solo de autenticación
-            const relevantErrors = paymentRes.errors.filter(error =>
-                error.path?.[0] !== 'me' ||
-                !error.message.includes('You are not currently authorized')
-            );
-
-            if (relevantErrors.length > 0) {
-                return createErrorResponse(
-                    'Failed to create MercadoPago payment',
-                    relevantErrors[0]?.message || 'Failed to create MercadoPago payment',
-                    HTTP_STATUS.BAD_REQUEST,
-                    ERROR_CODES.VALIDATION_ERROR,
-                    relevantErrors
-                );
-            }
-        }
-
-        const paymentData = paymentRes.data?.createMercadopagoPayment;
-
-        if (!paymentData) {
-            return createErrorResponse(
-                'No payment data',
-                'Failed to get payment data from MercadoPago',
-                HTTP_STATUS.INTERNAL_ERROR,
-                ERROR_CODES.INTERNAL_ERROR
-            );
-        }
-
-        // Asegúrate de que paymentData tenga la estructura correcta
-        const redirectUrl = paymentData.redirectUrl || paymentData.init_point || paymentData.sandbox_init_point;
-        const orderCode = paymentData.orderCode || order.code;
-
-        if (!redirectUrl) {
-            console.error('MercadoPago response:', paymentData);
-            return createErrorResponse(
-                'No redirect URL',
-                'Failed to get redirect URL from MercadoPago. Response: ' + JSON.stringify(paymentData),
-                HTTP_STATUS.INTERNAL_ERROR,
-                ERROR_CODES.INTERNAL_ERROR
-            );
-        }
-
+        // 3. For Checkout API with direct card payment, we don't need to create preferences
+        // We just need to return order info so the frontend can show the payment form
         const res = NextResponse.json({
-            redirectUrl,
-            orderCode,
-            paymentId: paymentData.id || paymentData.preferenceId
+            orderCode: order.code,
+            totalAmount: order.totalWithTax,
+            currencyCode: order.currencyCode || 'ARS',
         });
 
         forwardCookies(res, orderRes);
-        forwardCookies(res, paymentRes);
         return res;
     } catch (error) {
         console.error('Error creating MercadoPago payment:', error);

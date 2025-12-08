@@ -3,7 +3,7 @@
  * Optimized for SSR/ISR with native fetch
  */
 
-const VENDURE_SHOP_API = process.env.VENDURE_SHOP_API_URL || 'http://localhost:3000/shop-api';
+const VENDURE_SHOP_API = process.env.VENDURE_SHOP_API_URL || 'http://localhost:8080/shop-api';
 
 export interface GraphQLResponse<T = any> {
   data?: T;
@@ -36,11 +36,11 @@ export async function fetchGraphQL<T = any>(
 ): Promise<GraphQLResponse<T>> {
   try {
     // Priority: direct cookie > req cookies > headers
-    const cookieHeader = options?.cookie 
-      || options?.req?.headers.get('cookie') 
-      || options?.headers?.['Cookie'] 
+    const cookieHeader = options?.cookie
+      || options?.req?.headers.get('cookie')
+      || options?.headers?.['Cookie']
       || '';
-    
+
     const response = await fetch(VENDURE_SHOP_API, {
       method: 'POST',
       headers: {
@@ -59,26 +59,26 @@ export async function fetchGraphQL<T = any>(
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`HTTP ${response.status} error from Vendure:`, errorText);
-      
+
       try {
         const errorJson = JSON.parse(errorText);
-        return { 
-          errors: errorJson.errors || [{ 
-            message: `HTTP ${response.status}: ${errorJson.message || errorText}` 
-          }] 
+        return {
+          errors: errorJson.errors || [{
+            message: `HTTP ${response.status}: ${errorJson.message || errorText}`
+          }]
         };
       } catch {
-        return { 
-          errors: [{ 
+        return {
+          errors: [{
             message: `HTTP ${response.status}: ${errorText || 'Unknown error'}`,
             extensions: {}
-          }] 
+          }]
         };
       }
     }
 
     const result = await response.json();
-    
+
     if (result.errors) {
       console.error('GraphQL errors:', result.errors);
     }
@@ -92,11 +92,11 @@ export async function fetchGraphQL<T = any>(
     return result;
   } catch (error) {
     console.error('GraphQL fetch error:', error);
-    return { 
-      errors: [{ 
+    return {
+      errors: [{
         message: error instanceof Error ? error.message : 'Failed to fetch data',
         extensions: {}
-      }] 
+      }]
     };
   }
 }

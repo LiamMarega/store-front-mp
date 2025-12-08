@@ -20,7 +20,7 @@ export function CartDrawerItem({ item, currencyCode }: CartDrawerItemProps) {
 
   const handleQuantityChange = async (newQuantity: number) => {
     if (isUpdating || newQuantity === item.quantity || newQuantity < 1) return;
-    
+
     try {
       setIsUpdating(true);
       await updateQuantity(item.id, newQuantity);
@@ -34,7 +34,7 @@ export function CartDrawerItem({ item, currencyCode }: CartDrawerItemProps) {
 
   const handleRemove = async () => {
     if (isUpdating) return;
-    
+
     try {
       setIsUpdating(true);
       await removeItem(item.id);
@@ -53,7 +53,7 @@ export function CartDrawerItem({ item, currencyCode }: CartDrawerItemProps) {
       (item.productVariant?.currencyCode && /^[A-Z]{3}$/.test(item.productVariant.currencyCode)
         ? item.productVariant.currencyCode
         : undefined) ??
-      'USD';
+      'ARS';
 
     try {
       return new Intl.NumberFormat('en-US', {
@@ -65,7 +65,7 @@ export function CartDrawerItem({ item, currencyCode }: CartDrawerItemProps) {
     }
   };
 
-  const displayCurrency = currencyCode ?? item.productVariant?.currencyCode ?? 'USD';
+  const displayCurrency = currencyCode ?? item.productVariant?.currencyCode ?? 'ARS';
 
   return (
     <motion.div

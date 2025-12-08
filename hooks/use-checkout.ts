@@ -13,6 +13,7 @@ export const checkoutKeys = {
 interface PaymentIntentData {
   clientSecret?: string;
   redirectUrl?: string;
+  preferenceId?: string;
   orderCode: string;
   amount?: number;
   currency?: string;
@@ -109,8 +110,8 @@ async function createPaymentIntent(paymentMethod: string = 'stripe'): Promise<Pa
     throw new Error('No client secret received');
   }
 
-  if (paymentMethod === 'mercadopago' && !data.redirectUrl) {
-    throw new Error('No redirect URL received');
+  if (paymentMethod === 'mercadopago' && !data.preferenceId && !data.redirectUrl) {
+    throw new Error('No preference ID or redirect URL received');
   }
 
   return data;
@@ -134,7 +135,9 @@ export function useCheckoutProcess() {
   const { openAuthModal, isAuthenticated } = useAuth();
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
+  const [preferenceId, setPreferenceId] = useState<string | null>(null);
   const [orderCode, setOrderCode] = useState<string | null>(null);
+  const [totalAmount, setTotalAmount] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const setCustomerMutation = useMutation({
@@ -185,7 +188,7 @@ export function useCheckoutProcess() {
           await setShippingMethodMutation.mutateAsync(selectedShippingMethod);
         }
 
-        // Process MercadoPago payment
+        // Process MercadoPago payment - just prepare order for payment
         const response = await fetch('/api/checkout/mercadopago', {
           method: 'POST',
           headers: {
@@ -197,11 +200,17 @@ export function useCheckoutProcess() {
         const result = await response.json();
 
         if (!response.ok) {
-          throw new Error(result.message || 'Failed to create MercadoPago payment');
+          throw new Error(result.message || 'Failed to prepare MercadoPago payment');
         }
 
-        setRedirectUrl(result.redirectUrl);
+        // For Checkout API with direct card payment, we just need order info
+        // The payment form will handle the actual payment
         setOrderCode(result.orderCode);
+        if (result.totalAmount) {
+          setTotalAmount(result.totalAmount);
+        }
+        // Mark that we're ready for payment (no preferenceId needed)
+        setPreferenceId('ready'); // Use a marker value to indicate ready state
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'An error occurred during checkout';
         setError(errorMessage);
@@ -213,14 +222,18 @@ export function useCheckoutProcess() {
   const resetCheckout = useCallback(() => {
     setClientSecret(null);
     setRedirectUrl(null);
+    setPreferenceId(null);
     setOrderCode(null);
+    setTotalAmount(null);
     setError(null);
   }, []);
 
   return {
     clientSecret,
     redirectUrl,
+    preferenceId,
     orderCode,
+    totalAmount,
     isProcessing:
       setCustomerMutation.isPending ||
       setShippingAddressMutation.isPending ||

@@ -54,7 +54,7 @@ export function CartItem({ item, currencyCode }: CartItemProps) {
   const displayCurrency =
     currencyCode ??
     item.productVariant?.currencyCode ??
-    'USD';
+    'ARS';
 
   return (
     <div className="flex items-start space-x-3 p-3 border-b border-gray-100 last:border-b-0">

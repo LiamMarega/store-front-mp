@@ -43,11 +43,11 @@ export function RelatedProducts({ products }: RelatedProductsProps) {
               You Might Also Like
             </span>
           </div>
-          
+
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-brand-dark-blue mb-4 font-tango-sans leading-tight px-4 sm:px-0">
             Related Products
           </h2>
-          
+
           <p className="text-base sm:text-lg text-brand-dark-blue/80 max-w-2xl mx-auto px-4 sm:px-0">
             Discover more beautiful pieces that complement your style
           </p>
@@ -63,7 +63,7 @@ export function RelatedProducts({ products }: RelatedProductsProps) {
           {products.map((product, index) => {
             const mainVariant = product.variants?.[0];
             const price = mainVariant?.priceWithTax;
-            const currencyCode = mainVariant?.currencyCode || 'USD';
+            const currencyCode = mainVariant?.currencyCode || 'ARS';
 
             return (
               <motion.div
@@ -204,7 +204,7 @@ export function RelatedProducts({ products }: RelatedProductsProps) {
           <p className="text-lg mb-8 opacity-90 max-w-2xl mx-auto">
             Be the first to know about new products, exclusive offers, and design inspiration
           </p>
-          
+
           <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
             <input
               type="email"
@@ -218,7 +218,7 @@ export function RelatedProducts({ products }: RelatedProductsProps) {
               Subscribe
             </Button>
           </div>
-          
+
           <p className="text-sm opacity-75 mt-4">
             No spam, unsubscribe at any time
           </p>

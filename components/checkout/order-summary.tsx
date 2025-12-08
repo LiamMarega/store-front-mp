@@ -9,7 +9,7 @@ import { formatPrice } from '@/lib/checkout/utils';
 export function OrderSummary() {
   const { items, itemCount, order } = useCart();
 
-  const formatPrice = (price: number, currencyCode: string = 'USD') => {
+  const formatPrice = (price: number, currencyCode: string = 'ARS') => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: currencyCode,
