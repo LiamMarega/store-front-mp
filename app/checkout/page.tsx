@@ -98,8 +98,8 @@ export default function CheckoutPage() {
     resetCheckout();
   };
 
-  // Determine current step - show payment if we have orderCode and totalAmount (or preferenceId/redirectUrl for fallback)
-  const currentStep = (orderCode && (totalAmount || preferenceId || redirectUrl)) ? CheckoutStep.PAYMENT : CheckoutStep.CUSTOMER_INFO;
+  // Determine current step - show payment if we have orderCode and preferenceId for Checkout Bricks
+  const currentStep = (orderCode && preferenceId && totalAmount) ? CheckoutStep.PAYMENT : CheckoutStep.CUSTOMER_INFO;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-brand-cream/30 to-white pt-24 pb-12 sm:py-32">
@@ -183,12 +183,13 @@ export default function CheckoutPage() {
                   </Button>
                 </form>
               ) : (
-                /* Payment Step - MercadoPago Checkout API */
+                /* Payment Step - MercadoPago Checkout Bricks */
                 <>
-                  {orderCode && totalAmount ? (
+                  {orderCode && totalAmount && preferenceId ? (
                     <MercadoPagoPayment
                       orderCode={orderCode}
                       totalAmount={totalAmount}
+                      preferenceId={preferenceId}
                       onBack={handleBack}
                     />
                   ) : redirectUrl ? (

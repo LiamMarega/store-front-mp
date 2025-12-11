@@ -4,64 +4,56 @@ import { fetchGraphQL } from '@/lib/vendure-server';
 import { ADD_PAYMENT_TO_ORDER } from '@/lib/graphql/mutations';
 import { createErrorResponse, forwardCookies, HTTP_STATUS, ERROR_CODES } from '@/lib/api-utils';
 
-// Initialize MercadoPago client
-const mercadopago = new MercadoPagoConfig({
-    accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN || '',
-});
-
-interface ProcessPaymentBody {
-    token: string;
-    email: string;
-    amount: number;
-    installments: number;
-    orderCode: string;
-    paymentMethodId?: string;
-    issuerId?: string;
-    identificationType?: string;
-    identificationNumber?: string;
-}
-
 export async function POST(req: NextRequest) {
     try {
-        // Validate access token
-        if (!process.env.MERCADOPAGO_ACCESS_TOKEN) {
+        const env = process.env.MERCADOPAGO_ENV || 'dev';
+        const accessToken = env === 'prod'
+            ? process.env.MERCADOPAGO_ACCESS_TOKEN_PROD
+            : process.env.MERCADOPAGO_ACCESS_TOKEN_DEV;
+
+        if (!accessToken) {
             return createErrorResponse(
                 'MercadoPago not configured',
-                'MERCADOPAGO_ACCESS_TOKEN is not set',
+                `MERCADOPAGO_ACCESS_TOKEN_${env.toUpperCase()} is not set`,
                 HTTP_STATUS.INTERNAL_ERROR,
                 'MERCADOPAGO_CONFIG_ERROR'
             );
         }
 
-        // Parse request body
-        const body: ProcessPaymentBody = await req.json();
+        const mercadopago = new MercadoPagoConfig({
+            accessToken,
+        });
 
-        // Validate required fields
-        if (!body.token || !body.email || !body.amount || !body.orderCode) {
+        const body = await req.json();
+
+        // Validate required fields (token is optional for non-card methods like Ticket/Pix if paymentMethodId is present)
+        if ((!body.token && !body.paymentMethodId) || !body.email || !body.amount || !body.orderCode) {
             return createErrorResponse(
                 'Missing required fields',
-                'token, email, amount, and orderCode are required',
+                'token OR paymentMethodId, email, amount, and orderCode are required',
                 HTTP_STATUS.BAD_REQUEST,
                 ERROR_CODES.VALIDATION_ERROR
             );
         }
 
-        // Convert amount from cents to currency units (MercadoPago expects actual amount)
         const transactionAmount = body.amount / 100;
-
-        // Create payment with MercadoPago API
         const paymentClient = new Payment(mercadopago);
 
         const paymentData: any = {
-            token: body.token,
             transaction_amount: transactionAmount,
             installments: body.installments || 1,
+            description: `Order ${body.orderCode}`,
             payer: {
                 email: body.email,
             },
+            binary_mode: true,
+            external_reference: body.orderCode,
         };
 
-        // Add optional fields if provided
+        if (body.token) {
+            paymentData.token = body.token;
+        }
+
         if (body.paymentMethodId) {
             paymentData.payment_method_id = body.paymentMethodId;
         }
@@ -82,17 +74,26 @@ export async function POST(req: NextRequest) {
             email: body.email,
             installments: body.installments,
             orderCode: body.orderCode,
+            env,
         });
 
-        const mpPayment = await paymentClient.create({ body: paymentData });
+        // IMPORTANTE: Agregar X-Idempotency-Key para evitar pagos duplicados
+        const idempotencyKey = `${body.orderCode}-${Date.now()}`;
+
+        const mpPayment = await paymentClient.create({
+            body: paymentData,
+            requestOptions: {
+                idempotencyKey,
+            },
+        });
 
         console.log('MercadoPago payment result:', {
             id: mpPayment.id,
             status: mpPayment.status,
             statusDetail: mpPayment.status_detail,
+            env,
         });
 
-        // Check payment status
         if (mpPayment.status === 'rejected') {
             return createErrorResponse(
                 'Payment rejected',
@@ -105,7 +106,6 @@ export async function POST(req: NextRequest) {
 
         // Payment approved or pending - record it in Vendure
         if (mpPayment.status === 'approved' || mpPayment.status === 'in_process' || mpPayment.status === 'pending') {
-            // Add payment to order in Vendure
             const vendureRes = await fetchGraphQL(
                 {
                     query: ADD_PAYMENT_TO_ORDER,
@@ -117,6 +117,8 @@ export async function POST(req: NextRequest) {
                                 status: mpPayment.status,
                                 statusDetail: mpPayment.status_detail,
                                 transactionAmount: mpPayment.transaction_amount,
+                                orderCode: body.orderCode,
+                                env,
                             },
                         },
                     },
@@ -126,8 +128,6 @@ export async function POST(req: NextRequest) {
 
             if (vendureRes.errors?.length) {
                 console.error('Vendure addPaymentToOrder error:', vendureRes.errors);
-                // Payment was successful in MercadoPago but failed to record in Vendure
-                // This is a critical error - payment was taken but order not updated
                 return createErrorResponse(
                     'Payment recorded but order update failed',
                     'Please contact support with payment ID: ' + mpPayment.id,
@@ -144,15 +144,16 @@ export async function POST(req: NextRequest) {
                     success: true,
                     paymentId: mpPayment.id,
                     status: mpPayment.status,
+                    statusDetail: mpPayment.status_detail,
                     orderCode: body.orderCode,
                     orderState: orderResult.state,
+                    env,
                 });
 
                 forwardCookies(res, vendureRes);
                 return res;
             }
 
-            // Handle Vendure payment errors
             if (orderResult?.__typename === 'PaymentDeclinedError') {
                 return createErrorResponse(
                     'Payment declined by order system',
@@ -170,18 +171,8 @@ export async function POST(req: NextRequest) {
                     'VENDURE_PAYMENT_FAILED'
                 );
             }
-
-            if (orderResult?.__typename === 'OrderPaymentStateError') {
-                return createErrorResponse(
-                    'Order payment state error',
-                    orderResult.message || 'Invalid order state for payment',
-                    HTTP_STATUS.CONFLICT,
-                    'ORDER_PAYMENT_STATE_ERROR'
-                );
-            }
         }
 
-        // Unexpected status
         return createErrorResponse(
             'Unexpected payment status',
             `Payment status: ${mpPayment.status}`,
@@ -193,7 +184,6 @@ export async function POST(req: NextRequest) {
     } catch (error) {
         console.error('Error processing MercadoPago payment:', error);
 
-        // Handle MercadoPago API errors
         if (error && typeof error === 'object' && 'cause' in error) {
             const mpError = error as any;
             return createErrorResponse(

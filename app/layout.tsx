@@ -148,8 +148,8 @@ export default function RootLayout({
               },
               geo: {
                 '@type': 'GeoCoordinates',
-                latitude: 25.8108, 
-                longitude: -80.2235 
+                latitude: 25.8108,
+                longitude: -80.2235
               },
               telephone: '+13059240685',
               openingHoursSpecification: [
@@ -174,8 +174,8 @@ export default function RootLayout({
             })
           }}
         />
-      <Analytics />
-      <SpeedInsights />
+        {/* <Analytics /> */}
+        {/* <SpeedInsights /> */}
         <QueryProvider>
           <AuthProvider>
             <CartProvider>
@@ -184,7 +184,7 @@ export default function RootLayout({
                 {children}
                 <AuthModal />
                 <Toaster position="bottom-right" />
-          
+
                 <Footer />
               </SearchProvider>
             </CartProvider>

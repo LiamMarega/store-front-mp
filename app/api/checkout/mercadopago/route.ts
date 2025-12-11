@@ -1,11 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { MercadoPagoConfig, Preference } from 'mercadopago';
 import { fetchGraphQL } from '@/lib/vendure-server';
 import { GET_ACTIVE_ORDER_FOR_PAYMENT } from '@/lib/graphql/queries';
-import { TRANSITION_ORDER_TO_STATE, CREATE_MERCADOPAGO_PAYMENT } from '@/lib/graphql/mutations';
+import { TRANSITION_ORDER_TO_STATE } from '@/lib/graphql/mutations';
 import { createErrorResponse, forwardCookies, HTTP_STATUS, ERROR_CODES } from '@/lib/api-utils';
 
 export async function POST(req: NextRequest) {
     try {
+        const env = process.env.MERCADOPAGO_ENV || 'dev';
+        const accessToken = env === 'prod'
+            ? process.env.MERCADOPAGO_ACCESS_TOKEN_PROD
+            : process.env.MERCADOPAGO_ACCESS_TOKEN_DEV;
+
+        // Validate access token
+        if (!accessToken) {
+            return createErrorResponse(
+                'MercadoPago not configured',
+                `MERCADOPAGO_ACCESS_TOKEN_${env.toUpperCase()} is not set`,
+                HTTP_STATUS.INTERNAL_ERROR,
+                'MERCADOPAGO_CONFIG_ERROR'
+            );
+        }
+
+        const mercadopago = new MercadoPagoConfig({
+            accessToken,
+        });
+
         // 1. Verificar que existe una orden activa
         const orderRes = await fetchGraphQL(
             { query: GET_ACTIVE_ORDER_FOR_PAYMENT },
@@ -57,9 +77,78 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        // 3. For Checkout API with direct card payment, we don't need to create preferences
-        // We just need to return order info so the frontend can show the payment form
+        // 3. Create MercadoPago Preference for Checkout Bricks
+        const preferenceClient = new Preference(mercadopago);
+
+        // Convert amount from cents to currency units
+        const totalAmount = order.totalWithTax / 100;
+
+        // Get customer email from order if available
+        const customerEmail = order.customer?.emailAddress || '';
+
+        // Build preference items from order lines or use a single item for total
+        const items = order.lines && order.lines.length > 0
+            ? order.lines.map((line: any) => ({
+                id: line.productVariant?.sku || line.id,
+                title: line.productVariant?.name || 'Product',
+                quantity: line.quantity,
+                unit_price: line.linePriceWithTax / 100 / line.quantity,
+                currency_id: 'ARS',
+            }))
+            : [{
+                id: order.code,
+                title: `Order ${order.code}`,
+                quantity: 1,
+                unit_price: totalAmount,
+                currency_id: 'ARS',
+            }];
+
+        let baseUrl = (process.env.NEXT_PUBLIC_BASE_URL || process.env.SHOP_URL || 'http://localhost:3000').trim().replace(/\/$/, '');
+        if (!/^https?:\/\//.test(baseUrl)) {
+            baseUrl = baseUrl.includes('localhost') ? `http://${baseUrl}` : `https://${baseUrl}`;
+        }
+        if (!baseUrl) {
+            return createErrorResponse(
+                'MercadoPago not configured',
+                'Base URL is not defined for back_urls',
+                HTTP_STATUS.INTERNAL_ERROR,
+                'MERCADOPAGO_CONFIG_ERROR'
+            );
+        }
+
+        const preferencePayload = {
+            items,
+            payer: customerEmail ? { email: customerEmail } : undefined,
+            external_reference: order.code,
+            back_urls: {
+                success: `${baseUrl}/checkout/confirmation/${order.code}`,
+                failure: `${baseUrl}/checkout?error=payment_failed`,
+                pending: `${baseUrl}/checkout/confirmation/${order.code}?status=pending`,
+            },
+            notification_url: `${baseUrl}/api/webhooks/mercadopago`,
+        };
+
+        // Only enable auto_return if using HTTPS (required by MercadoPago)
+        if (baseUrl.startsWith('https://')) {
+            (preferencePayload as any).auto_return = 'approved';
+        }
+
+        console.log('Creating Preference with payload:', JSON.stringify(preferencePayload, null, 2));
+
+        const preference = await preferenceClient.create({
+            body: preferencePayload,
+        });
+
+        console.log('Created MercadoPago preference:', {
+            id: preference.id,
+            orderCode: order.code,
+            totalAmount,
+            env,
+            baseUrl,
+        });
+
         const res = NextResponse.json({
+            preferenceId: preference.id,
             orderCode: order.code,
             totalAmount: order.totalWithTax,
             currencyCode: order.currencyCode || 'ARS',
@@ -68,10 +157,10 @@ export async function POST(req: NextRequest) {
         forwardCookies(res, orderRes);
         return res;
     } catch (error) {
-        console.error('Error creating MercadoPago payment:', error);
+        console.error('Error creating MercadoPago preference:', error);
         return createErrorResponse(
             'Internal server error',
-            error instanceof Error ? error.message : 'Failed to create MercadoPago payment',
+            error instanceof Error ? error.message : 'Failed to create MercadoPago preference',
             HTTP_STATUS.INTERNAL_ERROR,
             ERROR_CODES.INTERNAL_ERROR
         );

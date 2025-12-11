@@ -203,14 +203,15 @@ export function useCheckoutProcess() {
           throw new Error(result.message || 'Failed to prepare MercadoPago payment');
         }
 
-        // For Checkout API with direct card payment, we just need order info
-        // The payment form will handle the actual payment
+        // Store preference data for Checkout Bricks
         setOrderCode(result.orderCode);
         if (result.totalAmount) {
           setTotalAmount(result.totalAmount);
         }
-        // Mark that we're ready for payment (no preferenceId needed)
-        setPreferenceId('ready'); // Use a marker value to indicate ready state
+        // Store the actual preferenceId for the Payment Brick
+        if (result.preferenceId) {
+          setPreferenceId(result.preferenceId);
+        }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'An error occurred during checkout';
         setError(errorMessage);

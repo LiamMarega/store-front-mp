@@ -3,13 +3,17 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "dev:clean": "rm -rf .next && next dev",
+    "dev": "cross-env NEXT_PUBLIC_MERCADOPAGO_ENV=dev next dev",
+    "dev:clean": "rm -rf .next && cross-env NEXT_PUBLIC_MERCADOPAGO_ENV=dev next dev",
     "build": "next build",
+    "build:dev": "cross-env NEXT_PUBLIC_MERCADOPAGO_ENV=dev next build",
+    "build:prod": "cross-env NEXT_PUBLIC_MERCADOPAGO_ENV=prod next build",
     "start": "next start",
     "lint": "next lint",
     "stop": "pkill -f next || true",
-    "test:stripe": "node scripts/test-stripe-config.js"
+    "test:stripe": "node scripts/test-stripe-config.js",
+    "mp:switch-dev": "node scripts/switch-mercadopago-env.js dev",
+    "mp:switch-prod": "node scripts/switch-mercadopago-env.js prod"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.2",
@@ -83,6 +87,7 @@
     "@types/react-dom": "^18",
     "@types/react-lazy-load-image-component": "^1.6.4",
     "autoprefixer": "^10.0.1",
+    "cross-env": "^7.0.3",
     "eslint": "^8",
     "eslint-config-next": "14.0.3",
     "postcss": "^8",
