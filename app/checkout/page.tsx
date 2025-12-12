@@ -40,6 +40,7 @@ export default function CheckoutPage() {
     preferenceId,
     orderCode,
     totalAmount,
+    customerData,
     isProcessing,
     error: checkoutError,
     processCheckout,
@@ -191,6 +192,18 @@ export default function CheckoutPage() {
                       totalAmount={totalAmount}
                       preferenceId={preferenceId}
                       onBack={handleBack}
+                      payerData={customerData ? {
+                        firstName: customerData.firstName,
+                        lastName: customerData.lastName,
+                        email: customerData.emailAddress,
+                        address: {
+                          zipCode: customerData.shippingPostalCode,
+                          city: customerData.shippingCity,
+                          federalUnit: customerData.shippingProvince,
+                          streetName: customerData.shippingStreetLine1,
+                          complement: customerData.shippingStreetLine2,
+                        },
+                      } : undefined}
                     />
                   ) : redirectUrl ? (
                     // Fallback to redirect flow if preferenceId is not available

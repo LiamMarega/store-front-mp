@@ -6,17 +6,17 @@ export function Hero() {
   return (
     <section className="rounded-lg overflow-hidden bg-white shadow-soft">
       <div className="px-8 md:px-12 pt-12 md:pt-14">
-        <h1 className="text-[42px] md:text-[56px] leading-[1.05] font-bold max-w-[760px] text-[#0A0A0A] tracking-[-0.02em]">
+        <h1 className="text-[42px] md:text-[56px] leading-[1.05] font-bold max-w-[760px] text-heading tracking-[-0.02em]">
           Discover Comfort, Style, and Quality at Great Prices
         </h1>
-        <p className="mt-4 max-w-[720px] text-[14px] md:text-[15px] text-[#4A4A4A] leading-[1.7]">
+        <p className="mt-4 max-w-[720px] text-[14px] md:text-[15px] text-body leading-[1.7]">
           Our furniture combines great design with practical functionality, ensuring every piece enhances your home with style and durability at affordable prices.
         </p>
         <Button className="mt-6">Shop Now</Button>
 
         <div className="flex justify-center mt-8 mb-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/90 shadow-[0_6px_20px_rgba(0,0,0,0.08)] border border-[#E5E7EB]">
-            <ChevronDown className="w-5 h-5 text-[#4A4A4A]" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/90 shadow-soft border border-brand-cream">
+            <ChevronDown className="w-5 h-5 text-body" />
           </div>
         </div>
       </div>

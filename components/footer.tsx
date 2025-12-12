@@ -12,7 +12,7 @@ export function Footer() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (isSubmitting) return;
 
     setIsSubmitting(true);
@@ -48,8 +48,7 @@ export function Footer() {
   return (
     <footer className="mt-12 bg-white rounded-lg p-6 md:p-8 shadow-soft relative overflow-hidden">
       <div
-        className="pointer-events-none absolute -bottom-4 left-6 text-[96px] md:text-[140px] font-black tracking-tight select-none"
-        style={{ color: 'rgba(35, 68, 101, 0.05)' }}
+        className="pointer-events-none absolute -bottom-4 left-6 text-[96px] md:text-[140px] font-black tracking-tight select-none text-brand-dark-blue/5"
         aria-hidden="true"
       >
         Florida Home

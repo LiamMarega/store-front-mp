@@ -138,6 +138,7 @@ export function useCheckoutProcess() {
   const [preferenceId, setPreferenceId] = useState<string | null>(null);
   const [orderCode, setOrderCode] = useState<string | null>(null);
   const [totalAmount, setTotalAmount] = useState<number | null>(null);
+  const [customerData, setCustomerData] = useState<CustomerFormData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const setCustomerMutation = useMutation({
@@ -205,6 +206,8 @@ export function useCheckoutProcess() {
 
         // Store preference data for Checkout Bricks
         setOrderCode(result.orderCode);
+        // Store customer data for Payment Brick payer initialization
+        setCustomerData(data);
         if (result.totalAmount) {
           setTotalAmount(result.totalAmount);
         }
@@ -226,6 +229,7 @@ export function useCheckoutProcess() {
     setPreferenceId(null);
     setOrderCode(null);
     setTotalAmount(null);
+    setCustomerData(null);
     setError(null);
   }, []);
 
@@ -235,6 +239,7 @@ export function useCheckoutProcess() {
     preferenceId,
     orderCode,
     totalAmount,
+    customerData,
     isProcessing:
       setCustomerMutation.isPending ||
       setShippingAddressMutation.isPending ||

@@ -8,11 +8,43 @@ import { useRouter } from 'next/navigation';
 import { initMercadoPago, Payment } from '@mercadopago/sdk-react';
 import { getMercadoPagoConfig } from '@/lib/mercadopago-config';
 
+// Brand colors from globals.css
+const BRAND_COLORS = {
+  primary: '#E56A2C',       // --brand-primary
+  secondary: '#7493B2',     // --brand-secondary  
+  accent: '#FDA46C',        // --brand-accent
+  cream: '#E9E2CF',         // --brand-cream
+  darkBlue: '#234465',      // --brand-dark-blue
+  white: '#FFFFFF',         // --brand-white
+};
+
+// Payer data for initialization
+interface PayerData {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  identification?: {
+    type?: string;
+    number?: string;
+  };
+  address?: {
+    zipCode?: string;
+    federalUnit?: string;
+    city?: string;
+    neighborhood?: string;
+    streetName?: string;
+    streetNumber?: string;
+    complement?: string;
+  };
+}
+
 interface MercadoPagoPaymentProps {
   orderCode: string;
   totalAmount: number;
   preferenceId: string;
   onBack?: () => void;
+  // Customer data to pre-fill the payment form
+  payerData?: PayerData;
 }
 
 declare global {
@@ -21,7 +53,7 @@ declare global {
   }
 }
 
-export function MercadoPagoPayment({ orderCode, totalAmount, preferenceId, onBack }: MercadoPagoPaymentProps) {
+export function MercadoPagoPayment({ orderCode, totalAmount, preferenceId, onBack, payerData }: MercadoPagoPaymentProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -191,20 +223,56 @@ export function MercadoPagoPayment({ orderCode, totalAmount, preferenceId, onBac
               initialization={{
                 amount: displayAmount,
                 preferenceId: preferenceId,
+                payer: payerData ? {
+                  firstName: payerData.firstName,
+                  lastName: payerData.lastName,
+                  email: payerData.email,
+                  identification: payerData.identification,
+                  address: payerData.address,
+                } as any : undefined,
               }}
               customization={{
                 visual: {
                   style: {
                     theme: 'default',
+                    customVariables: {
+                      // Primary colors - brand orange
+                      baseColor: BRAND_COLORS.primary,
+                      baseColorFirstVariant: BRAND_COLORS.accent,
+                      baseColorSecondVariant: BRAND_COLORS.secondary,
+                      // Text colors - dark blue for readability
+                      textPrimaryColor: BRAND_COLORS.darkBlue,
+                      textSecondaryColor: BRAND_COLORS.secondary,
+                      // Background colors
+                      formBackgroundColor: BRAND_COLORS.white,
+                      inputBackgroundColor: BRAND_COLORS.white,
+                      // Button
+                      buttonTextColor: BRAND_COLORS.white,
+                      // Borders
+                      outlinePrimaryColor: BRAND_COLORS.primary,
+                      outlineSecondaryColor: BRAND_COLORS.cream,
+                      // Status colors
+                      successColor: '#00A650',
+                      errorColor: '#F23D4F',
+                      // Border radius
+                      borderRadiusSmall: '4px',
+                      borderRadiusMedium: '8px',
+                      borderRadiusLarge: '12px',
+                      // Padding
+                      formPadding: '16px',
+                    },
                   },
                 },
+                // Using type assertion to allow wallet_purchase and onboarding_credits
+                // These are valid MercadoPago options but may not be in SDK types
                 paymentMethods: {
-                  creditCard: 'all',
-                  debitCard: 'all',
-                  ticket: 'all',
-                  bankTransfer: 'all',
+                  creditCard: "all",
+                  debitCard: "all",
+                  bankTransfer: "all",
+                  wallet_purchase: "all",
+                  onboarding_credits: "all",
                   maxInstallments: 12,
-                },
+                } as any,
               }}
               onReady={handleOnReady}
               onError={handleOnError}

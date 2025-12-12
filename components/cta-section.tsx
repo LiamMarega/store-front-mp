@@ -6,10 +6,10 @@ export function CTASection() {
     <section className="mt-10 rounded-lg bg-white p-6 md:p-8 shadow-soft">
       <div className="grid md:grid-cols-2 gap-6 items-center">
         <div>
-          <h2 className="text-[28px] md:text-[32px] font-bold text-[#0A0A0A]">
+          <h2 className="text-[28px] md:text-[32px] font-bold text-heading">
             Find Your Perfect Furniture Today
           </h2>
-          <p className="mt-3 text-[14px] text-[#4A4A4A] max-w-[580px] leading-[1.7]">
+          <p className="mt-3 text-[14px] text-body max-w-[580px] leading-[1.7]">
             Whether you need a comfortable chair, a cozy sofa, or a practical table, we have quality furniture that fits your style and budget. Start shopping now and transform your space!
           </p>
           <Button className="mt-6">Shop Now</Button>
