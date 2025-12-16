@@ -151,7 +151,7 @@ export async function POST(req: NextRequest) {
             preferenceId: preference.id,
             orderCode: order.code,
             totalAmount: order.totalWithTax,
-            currencyCode: order.currencyCode || 'ARS',
+            currencyCode: 'ARS', // MercadoPago Argentina siempre usa ARS
         });
 
         forwardCookies(res, orderRes);

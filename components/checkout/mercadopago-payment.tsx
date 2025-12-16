@@ -266,11 +266,10 @@ export function MercadoPagoPayment({ orderCode, totalAmount, preferenceId, onBac
                 // Using type assertion to allow wallet_purchase and onboarding_credits
                 // These are valid MercadoPago options but may not be in SDK types
                 paymentMethods: {
+                  ticket: "all", // "all" habilita: Red Link, Rapipago, Pago Fácil, etc.
                   creditCard: "all",
                   debitCard: "all",
-                  bankTransfer: "all",
-                  wallet_purchase: "all",
-                  onboarding_credits: "all",
+                  mercadoPago: "all", // Esto es dinero en cuenta (Wallet)
                   maxInstallments: 12,
                 } as any,
               }}
